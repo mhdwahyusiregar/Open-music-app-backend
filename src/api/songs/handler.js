@@ -13,9 +13,9 @@ class SongsHandler {
     autoBind(this);
   }
 
-  postSongHandler(request, h) {
+  async postSongHandler(request, h) {
     try {
-      this._validator.validateSongPayload(request.payload);
+      await this._validator.validateSongPayload(request.payload);
       const { title, year, genre, performer, duration, albumId } =
         request.payload;
 
@@ -58,21 +58,27 @@ class SongsHandler {
     }
   }
 
-  getSongsHandler() {
-    const songs = this._service.getSongs();
+  async getSongsHandler() {
+    const songs = await this._service.getSongs();
+    const simplifiedSongs = songs.map((song) => ({
+      id: song.id,
+      title: song.title,
+      performer: song.performer,
+    }));
+
     return {
       status: 'success',
       message: 'Mendapatkan seluruh lagu',
       data: {
-        songs,
+        songs: simplifiedSongs,
       },
     };
   }
 
-  getSongByIdHandler(request, h) {
+  async getSongByIdHandler(request, h) {
     try {
       const { id } = request.params;
-      const song = this._service.getSongById(id);
+      const song = await this._service.getSongById(id);
       const response = h.response({
         status: 'success',
         message: 'Mendapatkan lagu berdasarkan id',
@@ -106,33 +112,16 @@ class SongsHandler {
   async putSongByIdHandler(request, h) {
     try {
       this._validator.validateSongPayload(request.payload);
+      const { title, year, genre, performer, duration } = request.payload;
       const { id } = request.params;
-      const {
-        title = 'tanpa judul',
-        year,
-        genre,
-        performer,
-        duration,
-        albumId,
-      } = request.payload;
 
-      const updatedSong = await this._service.editSongById(id, {
+      await this._service.editSongById(id, {
         title,
         year,
         genre,
         performer,
         duration,
-        albumId,
       });
-
-      if (!updatedSong) {
-        const response = h.response({
-          status: 'fail',
-          message: 'Lagu tidak ditemukan',
-        });
-        response.code(404);
-        return response;
-      }
 
       const response = h.response({
         status: 'success',
@@ -161,10 +150,11 @@ class SongsHandler {
     }
   }
 
-  deleteSongByIdHandler(request, h) {
+  async deleteSongByIdHandler(request, h) {
     try {
       const { id } = request.params;
-      this._service.deleteSongById(id);
+      await this._service.deleteSongById(id);
+
       const response = h.response({
         status: 'success',
         message: 'Menghapus lagu berdasarkan id',
